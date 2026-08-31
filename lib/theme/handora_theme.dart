@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'palette.dart';
 
+/// Font families bundled with the app — see the `fonts:` section of pubspec.yaml.
+///
+/// These are shipped as assets rather than fetched at runtime (the `google_fonts`
+/// package downloads from fonts.gstatic.com on first use). Handora is offline
+/// first and its users are often on unreliable rural connections, so a first
+/// launch with no network must still render correctly — especially in Hindi.
+const kFontFamily = 'Inter';
+
+/// Inter carries no Devanagari glyphs. Listing Noto Sans Devanagari as a
+/// fallback makes Hindi text render correctly anywhere in the app without each
+/// widget having to opt in.
+const kFontFamilyFallback = <String>['NotoSansDevanagari'];
+
 ThemeData lightTheme() {
-  final text = GoogleFonts.interTextTheme(ThemeData.light().textTheme);
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: Colors.white,
-    textTheme: text,
+    fontFamily: kFontFamily,
+    fontFamilyFallback: kFontFamilyFallback,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.saffron600,
       brightness: Brightness.light,
@@ -17,19 +29,15 @@ ThemeData lightTheme() {
 }
 
 ThemeData darkTheme() {
-  final text = GoogleFonts.interTextTheme(ThemeData.dark().textTheme);
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.ink950,
-    textTheme: text,
+    fontFamily: kFontFamily,
+    fontFamilyFallback: kFontFamilyFallback,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.saffron600,
       brightness: Brightness.dark,
     ),
   );
 }
-
-/// Quick helper for Hindi text that needs Noto Sans Devanagari.
-TextStyle devaStyle([TextStyle? base]) =>
-    GoogleFonts.notoSansDevanagari(textStyle: base);

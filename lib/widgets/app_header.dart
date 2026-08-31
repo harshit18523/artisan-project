@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../l10n/strings.dart';
 import '../theme/palette.dart';
 
@@ -80,7 +79,7 @@ class _LangPill extends StatelessWidget {
       fontWeight: FontWeight.w700,
       color: active ? Colors.white : AppColors.saffron700,
     );
-    if (deva) style = GoogleFonts.notoSansDevanagari(textStyle: style);
+    if (deva) style = style.copyWith(fontFamily: 'NotoSansDevanagari');
 
     return GestureDetector(
       onTap: onTap,

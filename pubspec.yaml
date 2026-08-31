@@ -14,7 +14,8 @@ dependencies:
     sdk: flutter
 
   # Existing dependencies
-  google_fonts: ^6.2.1
+  # Note: fonts are bundled as assets (see `fonts:` below) rather than fetched
+  # at runtime by google_fonts — the app must render correctly offline.
   fl_chart: ^0.70.2
   provider: ^6.1.2
   sqflite: ^2.4.2
@@ -50,12 +51,22 @@ dev_dependencies:
   sqflite_common_ffi: ^2.3.4+4
   flutter_lints: ^6.0.0
 
-dependency_overrides:
-  record_platform_interface: 1.2.0
-
 flutter:
   uses-material-design: true
 
   assets:
     - assets/images/
     - .env
+
+  # Bundled so the UI renders correctly on a first launch with no connectivity.
+  # Both are variable fonts covering Thin..Black. Each is declared ONCE: since
+  # Flutter 3.41, TextStyle.fontWeight drives the font's `wght` axis directly,
+  # so per-weight entries are unnecessary. OFL licences ship alongside them.
+  # https://docs.flutter.dev/release/breaking-changes/font-weight-variation
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter.ttf
+    - family: NotoSansDevanagari
+      fonts:
+        - asset: assets/fonts/NotoSansDevanagari.ttf
