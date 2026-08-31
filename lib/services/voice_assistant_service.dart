@@ -3,13 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import '../l10n/strings.dart';
+import 'gemini_client.dart';
 
 enum VoiceAssistantError { micPermission, network, emptyRecording, noAnswer, generic }
 
@@ -126,14 +126,7 @@ class VoiceAssistantService {
   }
 
   Future<String> _askGemini(List<int> audioBytes) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    if (apiKey.isEmpty) throw VoiceAssistantError.generic;
-
     try {
-      final url = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
-      );
-
       final body = {
         "system_instruction": {
           "parts": [{"text": _systemPrompt}]
@@ -163,11 +156,10 @@ class VoiceAssistantService {
         },
       };
 
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      ).timeout(const Duration(seconds: 45));
+      final response = await GeminiClient.generateContent(
+        body,
+        timeout: const Duration(seconds: 45),
+      );
 
       if (response.statusCode != 200) {
         debugPrint('Gemini voice error ${response.statusCode}: ${response.body}');

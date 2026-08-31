@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
+import '../models/order.dart';
 import '../theme/palette.dart';
 import '../theme/shadows.dart';
 
@@ -23,12 +24,18 @@ const _pieces = <_Confetti>[
 /// Full-screen "Order Shipped" celebration modal with confetti.
 class OrderShippedModal extends StatefulWidget {
   final bool visible;
+
+  /// The order just accepted — every detail shown comes from it.
+  final Order order;
+  final Language language;
   final DashboardStrings strings;
   final VoidCallback onClose;
 
   const OrderShippedModal({
     super.key,
     required this.visible,
+    required this.order,
+    required this.language,
     required this.strings,
     required this.onClose,
   });
@@ -148,7 +155,8 @@ class _OrderShippedModalState extends State<OrderShippedModal>
                 ),
 
                 const SizedBox(height: 8),
-                Text(s.shippedTitle, textAlign: TextAlign.center,
+                Text(s.shippedTitle.replaceFirst('{id}', '#${widget.order.id}'),
+                  textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.3, color: AppColors.ink900)),
 
                 const SizedBox(height: 16),
@@ -164,18 +172,28 @@ class _OrderShippedModalState extends State<OrderShippedModal>
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                       Text(s.buyerLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink500)),
                       Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                        const Text('Meera Nair', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink900)),
-                        const Text('12 Rose Villa, Kochi 682001', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink500)),
+                        Text(widget.order.buyerName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink900)),
+                        Text(widget.order.formattedPhone, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.ink500)),
                       ]),
                     ]),
                     const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Divider(height: 1, color: AppColors.ink200)),
                     Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                      Text(s.courierLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink500)),
-                      Row(children: [
-                        Icon(Icons.local_shipping_outlined, size: 16, color: AppColors.saffron700),
-                        const SizedBox(width: 6),
-                        Text('Delhivery · HD8921IN', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.saffron700)),
-                      ]),
+                      Text(s.orderLabel, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink500)),
+                      Flexible(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                          Text(
+                            widget.language == Language.hi
+                                ? widget.order.productHi
+                                : widget.order.productEn,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink900),
+                          ),
+                          Text(widget.order.formattedAmount,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.saffron700)),
+                        ]),
+                      ),
                     ]),
                   ]),
                 ),

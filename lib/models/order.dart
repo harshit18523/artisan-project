@@ -1,4 +1,6 @@
-﻿class Order {
+﻿import '../utils/rupees.dart';
+
+class Order {
   final int? dbId; // auto-increment PK from SQLite
   final String id;
   final int quantity;
@@ -87,15 +89,8 @@
     createdAt: m['createdAt'] as String? ?? '',
   );
 
-  /// Formats amount: 850 -> "₹850", 1250 -> "₹1,250"
-  String get formattedAmount {
-    final s = amountInRupees.toString();
-    final formatted = s.replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-    return '₹$formatted';
-  }
+  /// Formats amount: 850 -> "₹850", 1250 -> "₹1,250", 100000 -> "₹1,00,000"
+  String get formattedAmount => formatRupees(amountInRupees);
 
   /// Clean buyer phone formatted for display (e.g. +91 98765 43210)
   String get formattedPhone {
@@ -107,45 +102,64 @@
   }
 }
 
+/// Formats a [DateTime] the way `Order.createdAt` stores it: `yyyy-MM-dd HH:mm`.
+///
+/// Matches what `DateTime.tryParse` expects in `ShopAnalytics.fromOrders`.
+String formatOrderTimestamp(DateTime d) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${d.year.toString().padLeft(4, '0')}-${two(d.month)}-${two(d.day)} '
+      '${two(d.hour)}:${two(d.minute)}';
+}
+
 /// Seed data loaded into SQLite on first launch.
-const kSeedOrders = <Order>[
-  Order(
-    id: 'HND-2481',
-    quantity: 1,
-    productEn: 'Handmade Scarf',
-    productHi: 'हाथ से बुना मफलर',
-    amountInRupees: 850,
-    placedAt: '10 min ago',
-    thumbnail: 'assets/images/scarf.jpg',
-    status: 'new',
-    buyerName: 'Priya Sharma',
-    buyerPhone: '919876543210',
-    createdAt: '2026-08-31 11:30',
-  ),
-  Order(
-    id: 'HND-2480',
-    quantity: 2,
-    productEn: 'Handmade Clay Pot',
-    productHi: 'हाथ से बना मिट्टी का बर्तन',
-    amountInRupees: 900,
-    placedAt: '2 hours ago',
-    thumbnail: 'assets/images/clay_pot.jpg',
-    status: 'processing',
-    buyerName: 'Amit Verma',
-    buyerPhone: '919812345678',
-    createdAt: '2026-08-31 09:15',
-  ),
-  Order(
-    id: 'HND-2479',
-    quantity: 1,
-    productEn: 'Wooden Craft Toys',
-    productHi: 'लकड़ी के खिलौने',
-    amountInRupees: 300,
-    placedAt: 'Yesterday',
-    thumbnail: 'assets/images/wooden_toys.jpg',
-    status: 'shipped',
-    buyerName: 'Sunita Patel',
-    buyerPhone: '919898989898',
-    createdAt: '2026-08-30 16:45',
-  ),
-];
+///
+/// Timestamps are relative to when seeding happens, not fixed dates. The Growth
+/// tab charts the last seven days, so hardcoded dates would drop out of that
+/// window within a week and leave the chart flat while the revenue card still
+/// showed their total.
+List<Order> seedOrders({DateTime? now}) {
+  final base = now ?? DateTime.now();
+  String ago(Duration d) => formatOrderTimestamp(base.subtract(d));
+
+  return [
+    Order(
+      id: 'HND-2481',
+      quantity: 1,
+      productEn: 'Handmade Scarf',
+      productHi: 'हाथ से बुना मफलर',
+      amountInRupees: 850,
+      placedAt: '10 min ago',
+      thumbnail: 'assets/images/scarf.jpg',
+      status: 'new',
+      buyerName: 'Priya Sharma',
+      buyerPhone: '919876543210',
+      createdAt: ago(const Duration(minutes: 10)),
+    ),
+    Order(
+      id: 'HND-2480',
+      quantity: 2,
+      productEn: 'Handmade Clay Pot',
+      productHi: 'हाथ से बना मिट्टी का बर्तन',
+      amountInRupees: 900,
+      placedAt: '2 hours ago',
+      thumbnail: 'assets/images/clay_pot.jpg',
+      status: 'processing',
+      buyerName: 'Amit Verma',
+      buyerPhone: '919812345678',
+      createdAt: ago(const Duration(hours: 2)),
+    ),
+    Order(
+      id: 'HND-2479',
+      quantity: 1,
+      productEn: 'Wooden Craft Toys',
+      productHi: 'लकड़ी के खिलौने',
+      amountInRupees: 300,
+      placedAt: 'Yesterday',
+      thumbnail: 'assets/images/wooden_toys.jpg',
+      status: 'shipped',
+      buyerName: 'Sunita Patel',
+      buyerPhone: '919898989898',
+      createdAt: ago(const Duration(hours: 26)),
+    ),
+  ];
+}

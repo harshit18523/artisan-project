@@ -98,12 +98,16 @@ lib/
 │   ├── growth_screen.dart    # Revenue analytics charts
 │   └── help_screen.dart      # Voice assistant
 ├── services/
-│   ├── database_helper.dart       # SQLite CRUD operations
+│   ├── database_helper.dart       # SQLite CRUD, migrations, settings
 │   ├── supabase_service.dart      # Cloud storage + database sync
+│   ├── supabase_gateway.dart      # Injectable seam over Supabase (testing)
+│   ├── gemini_client.dart         # Gemini transport (proxy or direct)
 │   ├── gemini_service.dart        # AI vision + voice processing
 │   ├── voice_assistant_service.dart # Audio recording + TTS
 │   └── whatsapp_service.dart      # WhatsApp deep link messaging
 ├── theme/          # Colors, typography, dark/light themes
+├── utils/
+│   └── rupees.dart                # Indian digit grouping (₹1,00,000)
 ├── widgets/        # Reusable UI components
 │   ├── product_card.dart          # Product tile with sync badges
 │   ├── edit_voice_info_modal.dart # Voice-edit bottom sheet
@@ -112,6 +116,9 @@ lib/
 │   ├── shimmer_product_card.dart  # Loading skeleton
 │   └── success_feedback_widgets.dart # Animated celebrations
 └── main.dart       # App entry point
+
+assets/fonts/       # Inter + Noto Sans Devanagari, bundled for offline use
+supabase/functions/gemini/  # Edge Function keeping the Gemini key server-side
 ```
 
 ---
@@ -120,6 +127,7 @@ lib/
 
 ### Prerequisites
 - Flutter SDK `^3.13.1`
+- **JDK 17** — required for the Android Gradle build
 - Android Studio or VS Code
 - Android emulator or physical device
 
@@ -149,6 +157,16 @@ flutter build apk --release
 ```
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Set ONE of the following for Gemini access.
+
+# Preferred — Edge Function that holds the API key server-side:
+#   supabase secrets set GEMINI_API_KEY=<your key>
+#   supabase functions deploy gemini
+GEMINI_PROXY_URL=https://your-project.supabase.co/functions/v1/gemini
+
+# Fallback for local demos. Note that `.env` is bundled into the APK, so this
+# key is extractable by anyone holding the build — don't ship it.
 GEMINI_API_KEY=your-google-gemini-api-key
 ```
 

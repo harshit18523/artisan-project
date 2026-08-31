@@ -37,13 +37,13 @@ class DashboardStrings {
   final String tutorialTitle, tutorialText, playLabel;
   final String callTitle, callNumber;
 
-  // Shipped modal
+  // Shipped modal. [shippedTitle] contains a `{id}` placeholder for the order id.
   final String shippedTitle, shippedPill;
-  final String buyerLabel, courierLabel;
+  final String buyerLabel, orderLabel;
   final String shareTracking, done;
 
-  // New order toast
-  final String toastTitle, toastOrder, accept;
+  // New order toast. The order summary line is built from the real order.
+  final String toastTitle, accept;
 
   final NavLabels nav;
 
@@ -68,9 +68,9 @@ class DashboardStrings {
     required this.tutorialTitle, required this.tutorialText, required this.playLabel,
     required this.callTitle, required this.callNumber,
     required this.shippedTitle, required this.shippedPill,
-    required this.buyerLabel, required this.courierLabel,
+    required this.buyerLabel, required this.orderLabel,
     required this.shareTracking, required this.done,
-    required this.toastTitle, required this.toastOrder, required this.accept,
+    required this.toastTitle, required this.accept,
     required this.nav,
   });
 }
@@ -121,14 +121,13 @@ const kStrings = <Language, DashboardStrings>{
     playLabel: 'Play audio tutorial',
     callTitle: 'Call Artisan Support Helpline',
     callNumber: '1800-HANDORA',
-    shippedTitle: 'Order #HD-8921 Shipped!',
+    shippedTitle: 'Order {id} Shipped!',
     shippedPill: 'Shipped',
     buyerLabel: 'Buyer',
-    courierLabel: 'Track with',
+    orderLabel: 'Order',
     shareTracking: 'Share Tracking on WhatsApp',
     done: 'Done',
     toastTitle: 'New Order Received!',
-    toastOrder: '₹1,200 · Handwoven Scarf',
     accept: 'Accept',
     nav: NavLabels(home: 'Home', catalog: 'Catalog', growth: 'Growth', support: 'Help'),
   ),
@@ -178,14 +177,13 @@ const kStrings = <Language, DashboardStrings>{
     playLabel: 'ऑडियो गाइड सुनें',
     callTitle: 'कारीगर हेल्पलाइन पर कॉल करें',
     callNumber: '1800-HANDORA',
-    shippedTitle: 'ऑर्डर #HD-8921 भेज दिया!',
+    shippedTitle: 'ऑर्डर {id} भेज दिया!',
     shippedPill: 'भेजा गया',
     buyerLabel: 'ख़रीदार',
-    courierLabel: 'ट्रैक करें',
+    orderLabel: 'ऑर्डर',
     shareTracking: 'WhatsApp पर ट्रैकिंग भेजें',
     done: 'ठीक है',
     toastTitle: 'नया ऑर्डर आया!',
-    toastOrder: '₹1,200 · हाथ से बुना दुपट्टा',
     accept: 'स्वीकारें',
     nav: NavLabels(home: 'होम', catalog: 'सामान', growth: 'कमाई', support: 'मदद'),
   ),

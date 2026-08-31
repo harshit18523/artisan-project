@@ -1,23 +1,13 @@
 ﻿import 'dart:convert';
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
 import '../models/product.dart';
+import 'gemini_client.dart';
 
 class GeminiService {
   /// Analyzes a product image using Google Gemini API to extract title, Hindi title, description, category, and price.
   static Future<Map<String, dynamic>> analyzeProductImage(File imageFile) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    if (apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not configured in .env');
-    }
-
     final bytes = await imageFile.readAsBytes();
     final base64Image = base64Encode(bytes);
-
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
-    );
 
     final body = {
       "contents": [
@@ -63,11 +53,7 @@ Rules:
       ]
     };
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    final response = await GeminiClient.generateContent(body);
 
     if (response.statusCode != 200) {
       throw Exception('Gemini error (${response.statusCode}): ${response.body}');
@@ -94,17 +80,8 @@ Rules:
     required File audioFile,
     required Product currentProduct,
   }) async {
-    final apiKey = dotenv.env['GEMINI_API_KEY'] ?? '';
-    if (apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY is not configured in .env');
-    }
-
     final bytes = await audioFile.readAsBytes();
     final base64Audio = base64Encode(bytes);
-
-    final url = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$apiKey',
-    );
 
     final promptText = """
 You are an AI assistant updating product catalog details for a local artisan on ONDC.
@@ -155,11 +132,7 @@ Output STRICTLY valid JSON with no markdown code blocks, matching this schema:
       }
     };
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
+    final response = await GeminiClient.generateContent(body);
 
     if (response.statusCode != 200) {
       throw Exception('Gemini voice edit error (${response.statusCode}): ${response.body}');

@@ -88,12 +88,14 @@ class _CaptureScreenState extends State<CaptureScreen> {
       }
 
       // 3. If uploaded to Supabase Storage, insert record into Supabase products table with public URL
+      String? remoteId;
       if (isSynced && remoteImageUrl != null && remoteImageUrl.isNotEmpty) {
         if (mounted) {
           setState(() => _statusMessage = 'Saving to Supabase & ONDC...');
         }
         try {
-          await SupabaseService.insertProduct(
+          remoteId = await SupabaseService.insertProduct(
+            id: productId,
             nameEn: nameEn,
             nameHi: nameHi,
             description: description,
@@ -118,6 +120,7 @@ class _CaptureScreenState extends State<CaptureScreen> {
         status: ProductStatus.live,
         image: remoteImageUrl ?? _image!.path,
         isSynced: isSynced,
+        remoteId: remoteId,
       );
 
       await dataProvider.addProduct(newProduct);
@@ -411,13 +414,18 @@ class _CaptureScreenState extends State<CaptureScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Live on ONDC pill
+          // Sync pill — green "Live on ONDC" only once the cloud actually has
+          // it; amber "Pending Sync" when the product is saved locally only.
+          // Mirrors the badge logic in product_card.dart.
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.green50,
+              color: product.isSynced ? AppColors.green50 : AppColors.amber100,
               borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: AppColors.green600.withAlpha(80)),
+              border: Border.all(
+                color: (product.isSynced ? AppColors.green600 : AppColors.amber600)
+                    .withAlpha(80),
+              ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -425,23 +433,39 @@ class _CaptureScreenState extends State<CaptureScreen> {
                 Container(
                   width: 8,
                   height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.green600,
+                  decoration: BoxDecoration(
+                    color: product.isSynced
+                        ? AppColors.green600
+                        : AppColors.amber600,
                     shape: BoxShape.circle,
                   ),
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  isHi ? 'ONDC पर लाइव' : 'Live on ONDC',
-                  style: const TextStyle(
+                  product.isSynced
+                      ? (isHi ? 'ONDC पर लाइव' : 'Live on ONDC')
+                      : (isHi ? 'सिंक होना बाकी' : 'Pending Sync'),
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.green800,
+                    color: product.isSynced
+                        ? AppColors.green800
+                        : AppColors.amber600,
                   ),
                 ),
               ],
             ),
           ),
+          if (!product.isSynced) ...[
+            const SizedBox(height: 8),
+            Text(
+              isHi
+                  ? 'फोन में सुरक्षित है — इंटरनेट आने पर अपने आप सिंक होगा'
+                  : 'Saved on your phone — will sync automatically when online',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: AppColors.ink500),
+            ),
+          ],
           const SizedBox(height: 24),
 
           // Product Summary Card
