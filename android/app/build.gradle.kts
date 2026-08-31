@@ -5,7 +5,7 @@
 }
 
 android {
-    namespace = "com.example.handora"
+    namespace = "com.handora.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.handora"
+        applicationId = "com.handora.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
