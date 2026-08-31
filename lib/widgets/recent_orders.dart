@@ -8,13 +8,20 @@ import 'order_details_modal.dart';
 class RecentOrders extends StatelessWidget {
   final String title;
   final Language language;
+
+  /// The orders to show — a capped slice, not necessarily every order.
   final List<Order> orders;
+
+  /// Total orders on record, so the count reflects the real number rather than
+  /// the length of the capped [orders] slice.
+  final int totalOrders;
 
   const RecentOrders({
     super.key,
     required this.title,
     required this.language,
     required this.orders,
+    required this.totalOrders,
   });
 
   void _openOrderDetails(BuildContext context, Order order) {
@@ -111,7 +118,7 @@ class RecentOrders extends StatelessWidget {
               ),
             ),
             Text(
-              '${orders.length} ${isHi ? "ऑर्डर" : "orders"}',
+              '$totalOrders ${isHi ? "ऑर्डर" : "orders"}',
               style: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,

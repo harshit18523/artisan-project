@@ -1,4 +1,6 @@
-﻿enum ProductStatus { live, draft }
+﻿import '../utils/rupees.dart';
+
+enum ProductStatus { live, draft }
 
 class Product {
   final String id;
@@ -11,6 +13,13 @@ class Product {
   final String image;
   final bool isSynced;
 
+  /// Primary key of the matching row in Supabase, captured at insert time.
+  ///
+  /// Supabase may assign its own key (e.g. a serial column), in which case it
+  /// differs from [id]. Cloud updates and deletes must filter on [syncKey], not
+  /// on [id], or they silently match zero rows.
+  final String? remoteId;
+
   const Product({
     required this.id,
     required this.nameEn,
@@ -21,7 +30,11 @@ class Product {
     required this.status,
     required this.image,
     this.isSynced = true,
+    this.remoteId,
   });
+
+  /// Key identifying this product's row in Supabase.
+  String get syncKey => remoteId ?? id;
 
   Product copyWith({
     String? id,
@@ -33,6 +46,7 @@ class Product {
     ProductStatus? status,
     String? image,
     bool? isSynced,
+    String? remoteId,
   }) {
     return Product(
       id: id ?? this.id,
@@ -44,6 +58,7 @@ class Product {
       status: status ?? this.status,
       image: image ?? this.image,
       isSynced: isSynced ?? this.isSynced,
+      remoteId: remoteId ?? this.remoteId,
     );
   }
 
@@ -57,6 +72,7 @@ class Product {
     'status': status.name,
     'image': image,
     'isSynced': isSynced ? 1 : 0,
+    'remoteId': remoteId,
   };
 
   factory Product.fromMap(Map<String, dynamic> m) => Product(
@@ -69,18 +85,11 @@ class Product {
     status: ProductStatus.values.byName(m['status'] as String),
     image: m['image'] as String,
     isSynced: (m['isSynced'] as int? ?? 1) == 1,
+    remoteId: m['remoteId'] as String?,
   );
 
-  /// Format price for display: 450 -> "₹450", 1250 -> "₹1,250"
-  String get formattedPrice {
-    final s = priceInRupees.toString();
-    // Indian number formatting (groups of 3 then 2)
-    final formatted = s.replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
-      (m) => '${m[1]},',
-    );
-    return '₹$formatted';
-  }
+  /// Format price for display: 450 -> "₹450", 1250 -> "₹1,250", 100000 -> "₹1,00,000"
+  String get formattedPrice => formatRupees(priceInRupees);
 }
 
 /// Seed data loaded into SQLite on first launch.
