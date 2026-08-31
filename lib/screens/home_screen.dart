@@ -37,7 +37,8 @@ class HomeScreen extends StatelessWidget {
           RecentOrders(
             title: s.recentOrders,
             language: app.language,
-            orders: data.orders,
+            orders: data.recentOrders,
+            totalOrders: data.orders.length,
           ),
         ],
       ),

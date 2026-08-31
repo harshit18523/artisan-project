@@ -1,7 +1,6 @@
 ﻿import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 import '../models/product.dart';
 
 class SupabaseService {
@@ -45,8 +44,27 @@ class SupabaseService {
     }
   }
 
-  /// Insert product into Supabase database table with public HTTP image URL.
-  static Future<void> insertProduct({
+  /// Postgres error codes meaning "this table assigns its own primary key".
+  ///
+  /// Raised when we offer a client-generated UUID to an `id` column that is an
+  /// integer or `GENERATED ALWAYS AS IDENTITY`. Anything else (network, RLS,
+  /// constraint violations) must not trigger the retry below, or a insert that
+  /// actually succeeded could be duplicated.
+  static const _serverAssignsIdCodes = {
+    '22P02', // invalid input syntax for type (uuid string -> integer column)
+    '42804', // datatype mismatch
+    '428C9', // cannot insert into GENERATED ALWAYS column
+    '55000', // object not in prerequisite state
+  };
+
+  /// Insert product into Supabase and return the primary key of the new row.
+  ///
+  /// Offers [id] as the row's key so local SQLite and Supabase share one
+  /// identity. If the table assigns its own key instead, retries without it and
+  /// returns whatever Postgres assigned — callers must persist the result as
+  /// [Product.remoteId] so later updates and deletes can find the row.
+  static Future<String> insertProduct({
+    required String id,
     required String nameEn,
     required String nameHi,
     required String description,
@@ -54,17 +72,40 @@ class SupabaseService {
     required int priceInRupees,
     required String imageUrl,
   }) async {
+    final payload = {
+      'name_en': nameEn,
+      'name_hi': nameHi,
+      'description': description,
+      'category': category,
+      'price_in_rupees': priceInRupees,
+      'status': 'live',
+      'image_url': imageUrl,
+    };
+
     try {
-      await _client.from('products').insert({
-        'name_en': nameEn,
-        'name_hi': nameHi,
-        'description': description,
-        'category': category,
-        'price_in_rupees': priceInRupees,
-        'status': 'live',
-        'image_url': imageUrl,
-      });
-      debugPrint('✅ Inserted product into Supabase table with public URL: $imageUrl');
+      final row = await _client
+          .from('products')
+          .insert({'id': id, ...payload})
+          .select()
+          .single();
+      final remoteId = row['id'].toString();
+      debugPrint('✅ Inserted product into Supabase with client id: $remoteId');
+      return remoteId;
+    } on PostgrestException catch (e) {
+      if (!_serverAssignsIdCodes.contains(e.code)) {
+        debugPrint('❌ Supabase insert failed: $e');
+        rethrow;
+      }
+      debugPrint(
+          'ℹ️ products.id is server-assigned (${e.code}); retrying without client id');
+    }
+
+    try {
+      final row =
+          await _client.from('products').insert(payload).select().single();
+      final remoteId = row['id'].toString();
+      debugPrint('✅ Inserted product into Supabase with server id: $remoteId');
+      return remoteId;
     } catch (e) {
       debugPrint('❌ Supabase insert failed: $e');
       rethrow;
@@ -72,17 +113,27 @@ class SupabaseService {
   }
 
   /// Update product in Supabase database table.
+  ///
+  /// Throws if no row matched — PostgREST reports a filter that matches nothing
+  /// as success, which would otherwise leave the product marked as synced while
+  /// the cloud silently keeps the stale values.
   static Future<void> updateProduct(Product product) async {
     try {
-      await _client.from('products').update({
+      final rows = await _client.from('products').update({
         'name_en': product.nameEn,
         'name_hi': product.nameHi,
         'description': product.description,
         'category': product.category,
         'price_in_rupees': product.priceInRupees,
         'status': product.status.name,
-      }).eq('id', product.id);
-      debugPrint('✅ Updated product in Supabase table: ${product.id}');
+        'image_url': product.image,
+      }).eq('id', product.syncKey).select();
+
+      if ((rows as List).isEmpty) {
+        throw StateError(
+            'No Supabase row matched id ${product.syncKey} — nothing updated.');
+      }
+      debugPrint('✅ Updated product in Supabase table: ${product.syncKey}');
     } catch (e) {
       debugPrint('⚠️ Supabase update failed: $e');
       rethrow;
@@ -90,6 +141,8 @@ class SupabaseService {
   }
 
   /// Delete product database record and associated image file from Supabase Storage.
+  ///
+  /// [id] must be the product's [Product.syncKey], not necessarily its local id.
   static Future<void> deleteProduct({required String id, String? imageUrl}) async {
     try {
       // 1. Delete database row from products table
@@ -110,25 +163,4 @@ class SupabaseService {
     }
   }
 
-  /// Fetch all products from Supabase ordered by creation date.
-  static Future<List<Product>> fetchProducts() async {
-    final data = await _client
-        .from('products')
-        .select()
-        .order('created_at', ascending: false);
-
-    return (data as List).map((row) {
-      return Product(
-        id: row['id']?.toString() ?? const Uuid().v4(),
-        nameEn: row['name_en'] as String? ?? 'Handmade Product',
-        nameHi: row['name_hi'] as String? ?? 'उत्पाद',
-        description: row['description'] as String? ?? '',
-        category: row['category'] as String? ?? 'Other',
-        priceInRupees: (row['price_in_rupees'] as num?)?.toInt() ?? 0,
-        status: ProductStatus.live,
-        image: row['image_url'] as String? ?? '',
-        isSynced: true,
-      );
-    }).toList();
-  }
 }

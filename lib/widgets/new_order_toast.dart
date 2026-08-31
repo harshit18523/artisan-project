@@ -1,18 +1,25 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../l10n/strings.dart';
+import '../models/order.dart';
 import '../theme/palette.dart';
 
-/// Slide-down toast notification for incoming orders.
+/// Slide-down toast notification for an incoming order.
 /// Shows a wiggling bell icon, order summary, and an Accept button.
 class NewOrderToast extends StatefulWidget {
   final bool visible;
+
+  /// The real pending order this toast represents.
+  final Order order;
+  final Language language;
   final DashboardStrings strings;
   final VoidCallback onAccept;
 
   const NewOrderToast({
     super.key,
     required this.visible,
+    required this.order,
+    required this.language,
     required this.strings,
     required this.onAccept,
   });
@@ -38,6 +45,13 @@ class _NewOrderToastState extends State<NewOrderToast>
   void dispose() {
     _bell.dispose();
     super.dispose();
+  }
+
+  /// "₹850 · Handmade Scarf" — the real amount and product, in the app language.
+  String get _summary {
+    final order = widget.order;
+    final name = widget.language == Language.hi ? order.productHi : order.productEn;
+    return '${order.formattedAmount} · $name';
   }
 
   @override
@@ -106,7 +120,7 @@ class _NewOrderToastState extends State<NewOrderToast>
                 children: [
                   Text(widget.strings.toastTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.ink900)),
-                  Text(widget.strings.toastOrder, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  Text(_summary, maxLines: 1, overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.ink500)),
                 ],
               )),

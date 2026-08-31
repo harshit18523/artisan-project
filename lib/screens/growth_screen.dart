@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../l10n/strings.dart';
-import '../models/analytics.dart';
 import '../providers/app_state.dart';
 import '../providers/data_provider.dart';
 import '../theme/palette.dart';
 import '../theme/shadows.dart';
+import '../utils/rupees.dart';
 import '../widgets/revenue_chart.dart';
 import '../widgets/theme_toggle.dart';
 
@@ -18,10 +18,12 @@ class GrowthScreen extends StatelessWidget {
     final data = context.watch<DataProvider>();
     final s = app.strings;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    final peakDay = app.language == Language.hi ? kPeakDay.dayHi : kPeakDay.dayEn;
 
-    // Use live order count from DB, keep revenue/chart as static analytics
-    final liveOrderCount = data.orders.length.toString();
+    // Every figure on this screen is derived from the orders in SQLite.
+    final analytics = data.analytics;
+    final peak = analytics.peak;
+    final peakDay = app.language == Language.hi ? peak.dayHi : peak.dayEn;
+    final trend = analytics.trendPercent;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
@@ -71,20 +73,16 @@ class GrowthScreen extends StatelessWidget {
                 Text(s.revenueLabel.toUpperCase(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, letterSpacing: 0.6, color: AppColors.ink500)),
               ]),
               const SizedBox(height: 12),
-              Text(kRevenue.total, style: TextStyle(
+              Text(formatRupees(analytics.totalRevenue), style: TextStyle(
                 fontSize: 48, fontWeight: FontWeight.w800, letterSpacing: -1,
                 color: dark ? Colors.white : AppColors.ink900,
               )),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: AppColors.green50, borderRadius: BorderRadius.circular(100)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.arrow_outward_rounded, size: 16, color: AppColors.green800),
-                  const SizedBox(width: 4),
-                  Text('${kRevenue.trend} ${s.trendLabel}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.green800)),
-                ]),
-              ),
+              // Hidden entirely when there is no prior week to compare against —
+              // better than showing an invented percentage.
+              if (trend != null) ...[
+                const SizedBox(height: 12),
+                _TrendPill(trend: trend, label: s.trendLabel),
+              ],
             ]),
           ]),
         ),
@@ -105,23 +103,62 @@ class GrowthScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 Text(s.chartTitle, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: dark ? Colors.white : AppColors.ink900)),
-                Text('${s.peakLabel}: $peakDay · ₹${kPeakDay.amount.toInt().toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')}',
+                Text('${s.peakLabel}: $peakDay · ${formatRupees(peak.amount.toInt())}',
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.saffron700)),
               ]),
             ),
             const SizedBox(height: 8),
-            RevenueChart(language: app.language),
+            RevenueChart(language: app.language, week: analytics.week),
           ]),
         ),
 
         const SizedBox(height: 16),
 
-        // Breakdown cards — live order count from DB, avg stays static
+        // Breakdown cards — both derived from orders in SQLite
         Row(children: [
-          Expanded(child: _BreakdownTile(Icons.receipt_long_rounded, s.totalOrdersLabel, liveOrderCount, dark)),
+          Expanded(child: _BreakdownTile(Icons.receipt_long_rounded, s.totalOrdersLabel, '${analytics.totalOrders}', dark)),
           const SizedBox(width: 12),
-          Expanded(child: _BreakdownTile(Icons.savings_rounded, s.avgOrderLabel, kRevenue.avgOrderValue, dark)),
+          Expanded(child: _BreakdownTile(Icons.savings_rounded, s.avgOrderLabel, formatRupees(analytics.avgOrderValue), dark)),
         ]),
+      ]),
+    );
+  }
+}
+
+/// Week-on-week revenue change. Green and rising, or red and falling.
+class _TrendPill extends StatelessWidget {
+  final double trend;
+  final String label;
+
+  const _TrendPill({required this.trend, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    final rising = trend >= 0;
+    final color = rising ? AppColors.green800 : AppColors.red600;
+    final background = rising
+        ? (dark ? AppColors.green600.withAlpha(45) : AppColors.green50)
+        : AppColors.red600.withAlpha(dark ? 55 : 28);
+    final sign = rising ? '+' : '';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(
+          rising ? Icons.arrow_outward_rounded : Icons.south_east_rounded,
+          size: 16,
+          color: color,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '$sign${trend.toStringAsFixed(1)}% $label',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
+        ),
       ]),
     );
   }
